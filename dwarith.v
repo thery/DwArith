@@ -9,6 +9,8 @@ Implicit Type f : float.
 Definition wellFormed d :=
   let: DWFloat xh xl := d in (xh + xl =? xh)%float.
 
+Definition fp2dw (x : float) := DWFloat x 0.
+
 Definition twoSum (a b : float) := 
  let s := (a + b)%float in
  let a' := (s - b)%float in
