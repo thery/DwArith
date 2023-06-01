@@ -19,6 +19,7 @@ Definition toF x : float radix2 :=
   let: DWFloat xh xl := x in  
   Generic.Fadd_exact (PrimitiveFloat.toF xh) (PrimitiveFloat.toF xh).
 
+(* What is the precision for DW ???? *)
 Definition precision := Z.
 Definition sfactor := Z. (* TODO: change to Int63? *)
 Definition prec p := match p with Zpos q => q | _ => xH end.
@@ -28,7 +29,7 @@ Definition StoZ (x : Z) := x.
 Definition incr_prec p i := Zplus p (Zpos i).
 
 Definition zero := DWFloat zero zero.
-Definition nan := DWFloat nan nan.
+Definition nan := DWFloat nan PrimitiveFloat.zero.
 
 Definition fromZ x := DWFloat (PrimitiveFloat.fromZ x) 0.
 
@@ -42,32 +43,54 @@ Definition fromF (f : float radix) :=
   DWFloat (PrimitiveFloat.fromF f) 0.
 
 Definition classify x :=
-  match classify x with
-  | NaN => Sig.Fnan
-  | PInf => Fpinfty
-  | NInf => Fminfty
-  | _ => Freal
+  let: DWFloat xh xl := x in 
+  match PrimitiveFloat.classify xh with
+  | Sig.Fnan => Sig.Fnan
+  | Fpinfty => Fpinfty
+  | Fminfty => Fminfty
+  | _ => 
+    match PrimitiveFloat.classify xl with
+    | Sig.Fnan => Sig.Fnan
+    | Fpinfty => Fpinfty
+    | Fminfty => Fminfty
+    | _ => Freal
+    end
   end.
 
 Definition real x :=
-  match PrimFloat.classify x with
+  let: DWFloat xh xl := x in 
+  match PrimFloat.classify xh with
   | PInf | NInf | NaN => false
-  | _ => true
+  | _ =>  match PrimFloat.classify xl with
+          | PInf | NInf | NaN => false
+          | _ => true
+          end
   end.
 
 Definition is_nan x :=
-  match PrimFloat.classify x with
+  let: DWFloat xh xl := x in 
+  match PrimFloat.classify xh with
   | NaN => true
-  | _ => false
+  | _ =>  match PrimFloat.classify xl with
+          | NaN => true
+          | _ => false
+          end
   end.
 
 Definition mag x :=
-  let (_, e) := PrimFloat.frshiftexp x in
-  (Int63.to_Z e - FloatOps.shift)%Z.
+  let: DWFloat xh xl := x in PrimitiveFloat.mag xh.
 
-Definition valid_ub x := negb (PrimFloat.eqb x neg_infinity).
+Definition valid_ub x :=
+  let: DWFloat xh xl := x in 
+  (wellFormed x &&  
+   negb (PrimFloat.eqb xh neg_infinity) && 
+   negb (PrimFloat.eqb xl neg_infinity))%bool.
 
-Definition valid_lb x := negb (PrimFloat.eqb x infinity).
+Definition valid_lb x := 
+  let: DWFloat xh xl := x in 
+  (wellFormed x &&  
+   negb (PrimFloat.eqb xh infinity) && 
+   negb (PrimFloat.eqb xl infinity))%bool.
 
 Definition Xcomparison_of_float_comparison c :=
   match c with
@@ -77,6 +100,7 @@ Definition Xcomparison_of_float_comparison c :=
   | FNotComparable => Xund
   end.
 
+(* HERE *)
 Definition cmp x y := Xcomparison_of_float_comparison (compare x y).
 
 Definition min x y :=
