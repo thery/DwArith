@@ -100,27 +100,39 @@ Definition Xcomparison_of_float_comparison c :=
   | FNotComparable => Xund
   end.
 
-(* HERE *)
-Definition cmp x y := Xcomparison_of_float_comparison (compare x y).
+Definition cmp x y := 
+  let: DWFloat xh xl := x in 
+  let: DWFloat yh yl := y in 
+  match PrimitiveFloat.cmp xh yh with 
+  | Xeq => PrimitiveFloat.cmp xl yl
+  | Xlt => Xlt 
+  | Xgt => Xgt
+  | Xund => Xund
+  end.
 
 Definition min x y :=
-  match (x ?= y)%float with
-  | FEq | FLt => x
-  | FGt => y
-  | FNotComparable => nan
+  match cmp x y with
+  | Xeq | Xlt => x
+  | Xgt => y
+  | Xund => nan
   end.
 
 Definition max x y :=
-  match (x ?= y)%float with
-  | FEq | FGt => x
-  | FLt => y
-  | FNotComparable => nan
+  match cmp x y with
+  | Xeq | Xgt => x
+  | Xlt => y
+  | Xund => nan
   end.
 
-Definition neg x := (- x)%float.
+Definition neg x := 
+  let: DWFloat xh xl := x in 
+  DWFloat (- xh) (- xl). 
+  
+Definition abs x :=
+  let: DWFloat xh xl := x in 
+  DWFloat (abs xh) (abs xl). 
 
-Definition abs x := abs x.
-
+(* HERE *)
 Definition scale x e :=
   ldshiftexp x (Int63.of_Z e + Int63.of_Z FloatOps.shift)%int63.
 
